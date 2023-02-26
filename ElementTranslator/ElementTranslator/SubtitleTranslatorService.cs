@@ -39,8 +39,9 @@ public class SubtitleTranslatorService
         return Path.Combine(destDir, outfileName);
     }
 
+    private ProgressTask _totalTask;
     public async Task TranslateLanguage(List<Languages> langList, List<SubtitleItem> items,
-        HttpClient httpClient, HttpClient httpClient2)
+        HttpClient httpClient)
     {
         var paralelOptions2 = new ParallelOptions { MaxDegreeOfParallelism = 8 };
 
@@ -51,6 +52,7 @@ public class SubtitleTranslatorService
             if (!File.Exists(GetOutputFileName(lang.code))) execList.Add(lang);
         }
 
+        var lineCount = items.Sum(x => x.PlaintextLines.Count);
         execList = execList.OrderBy(x => x.name).ToList();
         AnsiConsole.MarkupLine("[bold]Translating file[/]: [green]{0}[/]", _config.SubtitleFilePath);
         AnsiConsole.MarkupLine("[bold]Translating to[/]: [aqua]{0} languages[/]", execList.Count);
@@ -60,24 +62,30 @@ public class SubtitleTranslatorService
                 new RemainingTimeColumn(), new SpinnerColumn(Spinner.Known.Dots2))
             .AutoRefresh(true) // Turn off auto refresh
             .AutoClear(true) // Do not remove the task list when done
-            .HideCompleted(false)
+            .HideCompleted(true)
             .StartAsync(async ctx =>
             {
+              _totalTask=  ctx.AddTask("[bold red]Total:[/]", new ProgressTaskSettings
+                {
+                    MaxValue = lineCount * execList.Count,
+                    AutoStart = true
+                });
+                
                 await Parallel.ForEachAsync(execList, paralelOptions2, async (item, t) =>
                 {
                     var task = ctx.AddTask(item.name, new ProgressTaskSettings
                     {
-                        MaxValue = items.Sum(x => x.PlaintextLines.Count),
+                        MaxValue = lineCount,
                         AutoStart = false
                     });
 
-                    await TranslateLanguage(httpClient, httpClient2, GetOutputFileName(item.code), item, items, task);
+                    await TranslateLanguage(httpClient, GetOutputFileName(item.code), item, items, task);
                 });
             });
     }
 
 
-    public async Task TranslateLanguage(HttpClient httpClient, HttpClient httpClient2, string sourceFile,
+    public async Task TranslateLanguage(HttpClient httpClient,  string sourceFile,
         Languages languageCode, List<SubtitleItem> items, ProgressTask task)
     {
         var rnd = new Random();
@@ -93,11 +101,12 @@ public class SubtitleTranslatorService
                 {
                     var plainLine = item.PlaintextLines[index];
                     var translated =
-                        await _libreTranslateService.TranslateAsync(rnd.Next(0, 2) == 1 ? httpClient : httpClient2,
+                        await _libreTranslateService.TranslateAsync( httpClient ,
                             plainLine, "en", languageCode.code, languageDictionary);
                     newItem.PlaintextLines[index] = translated;
                     newItem.Lines[index] = translated;
                     task.Increment(1);
+                    _totalTask.Increment(1);
                     Debug.WriteLine(item.StartTime + " :: " + languageCode.name + " :: " + plainLine + " :: " +
                                     translated);
                 }

@@ -9,16 +9,18 @@ public class HttpRetryMessageHandler : DelegatingHandler
     {
     }
 
-    protected override Task<HttpResponseMessage> SendAsync(
+    protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        return Policy
-            .Handle<HttpRequestException>()
+
+        var waitAndRetryPolicy = Policy
+            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
             .Or<TimeoutRejectedException>()
-            .Or<TaskCanceledException>()
-            .OrResult<HttpResponseMessage>(x => !x.IsSuccessStatusCode)
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)))
-            .ExecuteAsync(() => base.SendAsync(request, cancellationToken));
+          
+            .WaitAndRetryAsync(10, retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)));
+        
+
+         return await waitAndRetryPolicy.ExecuteAsync(cancellationToken => base.SendAsync(request, cancellationToken), cancellationToken);
     }
 }

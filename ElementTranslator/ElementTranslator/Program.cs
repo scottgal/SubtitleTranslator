@@ -12,9 +12,8 @@
         // AnsiConsole.MarkupLine("[bold]Config File directory[/]: [green]{0}[/]", File.Exists("translate.json"));
 
         var httpClient = new HttpClient(new HttpRetryMessageHandler(new HttpClientHandler()))
-            { BaseAddress = new Uri("http://localhost:5000"), Timeout = TimeSpan.FromSeconds(30) };
-        var httpClient2 = new HttpClient(new HttpRetryMessageHandler(new HttpClientHandler()))
-            { BaseAddress = new Uri("http://theo:5000"), Timeout = TimeSpan.FromSeconds(30) };
+            { BaseAddress = new Uri(translateConfig.LibreTranslateUrl), Timeout = TimeSpan.FromSeconds(30) };
+      
         var sourceFile = translateConfig.SubtitleFilePath;
 
         var parser = new SrtParser();
@@ -24,7 +23,7 @@
         var libreTranslateService = new LibreTranslateService();
         var langList = await libreTranslateService.GetSupportedLanguagesAsync(httpClient);
         var subTitleTranslateService = new SubtitleTranslatorService(libreTranslateService, translateConfig);
-        await subTitleTranslateService.TranslateLanguage(langList, items, httpClient, httpClient2);
+        await subTitleTranslateService.TranslateLanguage(langList, items, httpClient);
 
 
         Debug.WriteLine("Languages: " + langList.Count);
