@@ -188,7 +188,7 @@ public class SubtitleTranslatorService
             ? $"[bold red]{description.PadRight(15)}[/]"
             : $"[bold green]{description.PadRight(15)}[/]";
         
-        var taskCount = $"{count}/{max}".PadRight(15);
+        var taskCount = $"{count}/{max}".PadRight(12);
 
         var speedDisplay = $"({speed}/s)".PadLeft(15);
         
