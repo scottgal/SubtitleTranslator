@@ -109,7 +109,7 @@ public class SubtitleTranslatorService
         
         var outItems = new ConcurrentBag<SubtitleItem?>(tempItem);
 
-        _lineParalellOptions.MaxDegreeOfParallelism =(int) Math.Ceiling((double)Environment.ProcessorCount / ExecutorCount);
+        _lineParalellOptions.MaxDegreeOfParallelism =2;
         var languageDictionary = new ConcurrentDictionary<string, string>();
         await Parallel.ForEachAsync(procItems, _lineParalellOptions,
             async (item, t) =>
@@ -129,7 +129,17 @@ public class SubtitleTranslatorService
                                 translated =
                                     await _libreTranslateService.TranslateAsync( httpClient ,
                                         plainLine, _config.SourceLanguage, languageCode.code, languageDictionary);
-                                if (translated.Item1) break;
+                                if (translated.success)
+                                {
+                                    task.Increment(1);
+                                    _totalTask.Increment(1);
+                                    _totalTask.Description =
+                                        TaskDescription(_totalTask, isTitle: true, description: "Total");
+                                    task.Description = TaskDescription(task, description: languageCode.name);
+                                    break;
+                                }
+
+                              
                             }
                             catch (Exception e)
                             {
@@ -148,17 +158,8 @@ public class SubtitleTranslatorService
                                     translated.response);
                 }
 
-                lock (task)
-                {
-                    task.Increment(1);
-                    var percent = (int) (task.Value * 100 / task.MaxValue);
-
-                    _totalTask.Description = TaskDescription(_totalTask, isTitle: true, description: "Total");
-                    task.Description = TaskDescription(task, description: languageCode.name);
-                }
-                    
-              lock(_totalTask)
-                    _totalTask.Increment(1);
+              
+                 
                  
                 
                 if (task.Value % 100 == 0)
@@ -170,10 +171,12 @@ public class SubtitleTranslatorService
             });
         await WriteTempFile(languageCode, outItems);
         File.Move(GetOutputFileName(languageCode.code, true), GetOutputFileName(languageCode.code, false));
+        task.StopTask();
     }
 
     private string TaskDescription(ProgressTask? task, string description, bool isTitle = false, double maxValue =0, bool isInitial =false)
     {
+        
         var count = 0d;
         var max = maxValue;
         var speed = 0d;
