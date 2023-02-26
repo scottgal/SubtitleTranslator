@@ -35,6 +35,8 @@ public class SubtitleTranslatorService
         return Path.Combine(destDir, outfileName);
     }
 
+    private int MaxLangName = 0;
+    
     private ProgressTask _totalTask;
     public async Task TranslateLanguage(List<Languages> langList, List<SubtitleItem> items,
         HttpClient httpClient)
@@ -42,8 +44,10 @@ public class SubtitleTranslatorService
         var paralelOptions2 = new ParallelOptions { MaxDegreeOfParallelism = 8 };
 
         var execList = new List<Languages>();
+        
         foreach (var lang in langList)
         {
+            if (MaxLangName < lang.name.Length) MaxLangName = lang.name.Length;
             if (!_config.Languages.Contains(lang.code)) continue;
             if (!File.Exists(GetOutputFileName(lang.code))) execList.Add(lang);
         }
@@ -61,7 +65,7 @@ public class SubtitleTranslatorService
             .HideCompleted(true)
             .StartAsync(async ctx =>
             {
-              _totalTask=  ctx.AddTask("[bold red]Total:[/]", new ProgressTaskSettings
+              _totalTask=  ctx.AddTask("[bold red]Total:[/]".PadRight(40), new ProgressTaskSettings
                 {
                     MaxValue = lineCount * execList.Count,
                     AutoStart = true
@@ -69,7 +73,7 @@ public class SubtitleTranslatorService
                 
                 await Parallel.ForEachAsync(execList, paralelOptions2, async (item, t) =>
                 {
-                    var task = ctx.AddTask(item.name, new ProgressTaskSettings
+                    var task = ctx.AddTask($"[bold red]{item.name.PadRight(MaxLangName +3)}[/]" + $"{0}/{lineCount}".PadRight(10) + $"(0tps)".PadLeft(10), new ProgressTaskSettings
                     {
                         MaxValue = lineCount,
                         AutoStart = false
@@ -90,13 +94,14 @@ public class SubtitleTranslatorService
         task.StartTask();
         var tempItem =await LoadTempFile(languageCode);
         task.Increment(tempItem.Count);
+        _totalTask.Increment(tempItem.Count);
         var procItems = items.Where(x => tempItem.All(itm => itm.StartTime != x.StartTime));
         
         var outItems = new ConcurrentBag<SubtitleItem?>(tempItem);
         
         
         var languageDictionary = new ConcurrentDictionary<string, string>();
-        await Parallel.ForEachAsync(procItems, new ParallelOptions {MaxDegreeOfParallelism = 1},
+        await Parallel.ForEachAsync(procItems, new ParallelOptions {MaxDegreeOfParallelism = 4},
             async (item, t) =>
             {
                 var newItem = item.Clone();
@@ -128,19 +133,30 @@ public class SubtitleTranslatorService
                     
                     newItem.PlaintextLines[index] = translated.response;
                     newItem.Lines[index] = translated.response;
-                    task.Increment(1);
                    
-                    _totalTask.Increment(1);
                     Debug.WriteLine(item.StartTime + " :: " + languageCode.name + " :: " + plainLine + " :: " +
                                     translated.response);
                 }
+
+                lock (task)
+                {
+                    task.Increment(1);
+                    var percent = (int) (task.Value * 100 / task.MaxValue);
+                 
+                    task.Description = $"[bold green]{languageCode.name.PadRight(MaxLangName +3)}[/]" + $"{task.Value}/{task.MaxValue}".PadRight(10) + $"({Math.Round(task.Speed.Value)}tps)".PadLeft(10);
+                }
+                    
+              lock(_totalTask)
+                    _totalTask.Increment(1);
+                 
+                
                 if (task.Value % 100 == 0)
                 {
+                  
                     await WriteTempFile(languageCode, outItems);
                 }
                 outItems.Add(newItem);
             });
-
         await WriteTempFile(languageCode, outItems);
         File.Move(GetOutputFileName(languageCode.code, true), GetOutputFileName(languageCode.code, false));
     }
