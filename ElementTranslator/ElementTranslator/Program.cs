@@ -1,13 +1,23 @@
-﻿internal class Program
+﻿using Xabe.FFmpeg.Downloader;
+
+internal class Program
 {
     private static async Task Main(string[] args)
     {
-        Console.OutputEncoding = Encoding.UTF8;
-
-        AnsiConsole.MarkupLine("[bold]Current directory[/]: [green]{0}[/]", Directory.GetCurrentDirectory());
+        Console.OutputEncoding = Encoding.UTF8; 
+        await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+        
         var translateConfig = JsonSerializer.Deserialize(
             await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(), "translate.json")),
             TranslatorJsonContext.Default.TranslateConfig);
+        var whisperHttpClient = new HttpClient(new HttpRetryMessageHandler(new HttpClientHandler()))
+            { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromSeconds(30) };
+
+        var whisperAIService = new WhisperTenscriptionService(whisperHttpClient, translateConfig);
+       await whisperAIService.ExtractAudioFromVideoFile(translateConfig.SourceVideoFilePath, translateConfig.DestinationPath);
+        return;
+        AnsiConsole.MarkupLine("[bold]Current directory[/]: [green]{0}[/]", Directory.GetCurrentDirectory());
+   
 
         // AnsiConsole.MarkupLine("[bold]Config File directory[/]: [green]{0}[/]", File.Exists("translate.json"));
 
