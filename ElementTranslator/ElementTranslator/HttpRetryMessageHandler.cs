@@ -17,10 +17,11 @@ public class HttpRetryMessageHandler : DelegatingHandler
         var waitAndRetryPolicy = Policy
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
             .Or<TimeoutRejectedException>()
-          
-            .WaitAndRetryAsync(10, retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)));
+            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(1, retryAttempt)));
         
 
-         return await waitAndRetryPolicy.ExecuteAsync(cancellationToken => base.SendAsync(request, cancellationToken), cancellationToken);
+         var result = await waitAndRetryPolicy.ExecuteAndCaptureAsync(cancellationToken => base.SendAsync(request, cancellationToken), cancellationToken);
+         AnsiConsole.WriteException(result.FinalException);
+         return result.Result;
     }
 }
