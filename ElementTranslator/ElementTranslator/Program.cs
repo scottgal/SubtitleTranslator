@@ -10,11 +10,12 @@ internal class Program
         var translateConfig = JsonSerializer.Deserialize(
             await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(), "translate.json")),
             TranslatorJsonContext.Default.TranslateConfig);
-        var whisperHttpClient = new HttpClient(new HttpRetryMessageHandler(new HttpClientHandler()))
-            { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromSeconds(30) };
+        var whisperHttpClient = new HttpClient()
+            { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromMinutes(30) };
 
         var whisperAIService = new WhisperTenscriptionService(whisperHttpClient, translateConfig);
-       await whisperAIService.ExtractAudioFromVideoFile(translateConfig.SourceVideoFilePath, translateConfig.DestinationPath);
+        var mp3Result = await whisperAIService.ExtractAudioFromVideoFile(translateConfig.SourceVideoFilePath, translateConfig.DestinationPath);
+        await whisperAIService.TranscribeVideoFile(mp3Result.filePath, translateConfig.DestinationPath);
         return;
         AnsiConsole.MarkupLine("[bold]Current directory[/]: [green]{0}[/]", Directory.GetCurrentDirectory());
    
