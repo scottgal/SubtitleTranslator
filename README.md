@@ -1,7 +1,7 @@
 # SubtitleTranslator
 
 Little commandline Subtitle translator. Uses LibreTranslate as a front end. 
-![image](https://user-images.githubusercontent.com/503770/221421145-1f770869-00ee-40cb-9cf2-259bf7265733.png)
+![image](https://user-images.githubusercontent.com/503770/221427796-042cd914-0467-4d14-8c41-73e262218524.png)
 
 Uses translate.json to configure translation.
 
