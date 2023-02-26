@@ -160,7 +160,7 @@ public class SubtitleTranslatorService
     {
         var writer = new SrtWriter();
        var outList = outItems.OrderBy(x => x.StartTime).ToList();
-        await using var fileStream = File.OpenWrite(GetOutputFileName(languageCode.code, true));
+        await using var fileStream = File.Create(GetOutputFileName(languageCode.code, true));
         await writer.WriteStreamAsync(fileStream, outList);
     }
 }
