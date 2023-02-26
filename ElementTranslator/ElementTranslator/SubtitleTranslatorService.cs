@@ -10,11 +10,18 @@ public class SubtitleTranslatorService
     private readonly TranslateConfig _config;
     private readonly LibreTranslateService _libreTranslateService;
 
+    private ParallelOptions _languageParalellOptions =
+        new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount};
+
+    private  ParallelOptions _lineParalellOptions;
     public SubtitleTranslatorService(LibreTranslateService libreTranslateService, TranslateConfig translateConfig)
     {
         _libreTranslateService = libreTranslateService;
         _config = translateConfig;
+        _lineParalellOptions =
+            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount / _languageParalellOptions.MaxDegreeOfParallelism };
     }
+    
 
 
     private string GetOutputFileName(string languageCode, bool isTemp = false)
@@ -37,11 +44,12 @@ public class SubtitleTranslatorService
 
     private int MaxLangName = 0;
     
+    private int ExecutorCount = 0;
     private ProgressTask _totalTask;
     public async Task TranslateLanguage(List<Languages> langList, List<SubtitleItem> items,
         HttpClient httpClient)
     {
-        var paralelOptions2 = new ParallelOptions { MaxDegreeOfParallelism = 8 };
+
 
         var execList = new List<Languages>();
         
@@ -71,15 +79,17 @@ public class SubtitleTranslatorService
                     AutoStart = true
                 });
                 
-                await Parallel.ForEachAsync(execList, paralelOptions2, async (item, t) =>
+                await Parallel.ForEachAsync(execList, _languageParalellOptions, async (item, t) =>
                 {
-                    var task = ctx.AddTask($"[bold red]{item.name.PadRight(MaxLangName +3)}[/]" + $"{0}/{lineCount}".PadRight(10) + $"(0tps)".PadLeft(10), new ProgressTaskSettings
+                    var task = ctx.AddTask(TaskDescription(null, isInitial:true, description:item.name ) , new ProgressTaskSettings
                     {
                         MaxValue = lineCount,
                         AutoStart = false
                     });
 
+                    ExecutorCount++;
                     await TranslateLanguage(httpClient, GetOutputFileName(item.code), item, items, task);
+                    ExecutorCount--;
                 });
             });
     }
@@ -98,10 +108,10 @@ public class SubtitleTranslatorService
         var procItems = items.Where(x => tempItem.All(itm => itm.StartTime != x.StartTime));
         
         var outItems = new ConcurrentBag<SubtitleItem?>(tempItem);
-        
-        
+
+        _lineParalellOptions.MaxDegreeOfParallelism = Environment.ProcessorCount / ExecutorCount;
         var languageDictionary = new ConcurrentDictionary<string, string>();
-        await Parallel.ForEachAsync(procItems, new ParallelOptions {MaxDegreeOfParallelism = 4},
+        await Parallel.ForEachAsync(procItems, _lineParalellOptions,
             async (item, t) =>
             {
                 var newItem = item.Clone();
@@ -142,8 +152,9 @@ public class SubtitleTranslatorService
                 {
                     task.Increment(1);
                     var percent = (int) (task.Value * 100 / task.MaxValue);
-                 
-                    task.Description = $"[bold green]{languageCode.name.PadRight(MaxLangName +3)}[/]" + $"{task.Value}/{task.MaxValue}".PadRight(10) + $"({Math.Round(task.Speed.Value)}tps)".PadLeft(10);
+
+                    _totalTask.Description = TaskDescription(_totalTask, isTitle: true, description: "Total");
+                    task.Description = TaskDescription(task, description: languageCode.name);
                 }
                     
               lock(_totalTask)
@@ -159,6 +170,31 @@ public class SubtitleTranslatorService
             });
         await WriteTempFile(languageCode, outItems);
         File.Move(GetOutputFileName(languageCode.code, true), GetOutputFileName(languageCode.code, false));
+    }
+
+    private string TaskDescription(ProgressTask? task, string description, bool isTitle = false, double maxValue =0, bool isInitial =false)
+    {
+        var count = 0d;
+        var max = maxValue;
+        var speed = 0d;
+        if(!isInitial && task is not null)
+        {
+            count = task.Value;
+            max = task.MaxValue;
+            speed = Math.Round(task.Speed.Value,3);
+        }
+
+        var desDisplau = isTitle
+            ? $"[bold red]{description.PadRight(15)}[/]"
+            : $"[bold green]{description.PadRight(15)}[/]";
+        
+        var taskCount = $"{count}/{max}".PadRight(15);
+
+        var speedDisplay = $"({speed}/s)".PadLeft(15);
+        
+      
+
+        return $"{desDisplau} {taskCount} {speedDisplay}";
     }
 
 
