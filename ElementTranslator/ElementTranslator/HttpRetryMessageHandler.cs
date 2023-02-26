@@ -21,7 +21,8 @@ public class HttpRetryMessageHandler : DelegatingHandler
         
 
          var result = await waitAndRetryPolicy.ExecuteAndCaptureAsync(cancellationToken => base.SendAsync(request, cancellationToken), cancellationToken);
-         AnsiConsole.WriteException(result.FinalException);
+         if(result.FinalException is not null)
+          AnsiConsole.WriteException(result.FinalException);
          return result.Result;
     }
 }

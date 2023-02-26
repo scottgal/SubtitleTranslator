@@ -6,14 +6,15 @@ namespace ElementTranslator;
 
 public class LibreTranslateService
 {
-    public async Task<string> TranslateAsync(HttpClient httpClient, string test, string sourceLanguage,
+    public async Task<(bool success, string translatedText)> TranslateAsync(HttpClient httpClient, string test,
+        string sourceLanguage,
         string targetLanguage, ConcurrentDictionary<string, string> cache)
     {
         if (cache.TryGetValue(test, out var value))
         {
-            Debug.WriteLine("_____________________________________SKIP FOR " + value +
-                            "_____________________________________");
-            return value;
+            Debug.WriteLine(
+                $"_____________________________________SKIP FOR {value}_____________________________________");
+            return (true, value);
         }
 
         var urlEncodedContent = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -32,14 +33,25 @@ public class LibreTranslateService
             }
         });
 
-        var content = (HttpContent)urlEncodedContent;
-        var res =
-            await httpClient.PostAsync("/translate", content);
-        var stringResp = await res.Content.ReadAsStringAsync();
 
-        var ret = JsonSerializer.Deserialize(stringResp, TranslatorJsonContext.Default.TranslateResponse);
+        var content = (HttpContent)urlEncodedContent;
+        string stringResp;
+        try
+        {
+            var res =
+                await httpClient.PostAsync("/translate", content);
+            stringResp = await res.Content.ReadAsStringAsync();
+        }
+        catch (Exception e)
+        {
+            AnsiConsole.WriteException(e);
+            return (success: false, "");
+        }
+    
+
+    var ret = JsonSerializer.Deserialize(stringResp, TranslatorJsonContext.Default.TranslateResponse);
         cache.TryAdd(test, ret.TranslatedText);
-        return ret.TranslatedText;
+         return (success: true, ret.TranslatedText);
     }
 
     public async Task<List<Languages>?> GetSupportedLanguagesAsync(HttpClient httpClient)
