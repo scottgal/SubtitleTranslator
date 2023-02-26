@@ -109,7 +109,7 @@ public class SubtitleTranslatorService
         
         var outItems = new ConcurrentBag<SubtitleItem?>(tempItem);
 
-        _lineParalellOptions.MaxDegreeOfParallelism = Environment.ProcessorCount / ExecutorCount;
+        _lineParalellOptions.MaxDegreeOfParallelism =(int) Math.Ceiling((double)Environment.ProcessorCount / ExecutorCount);
         var languageDictionary = new ConcurrentDictionary<string, string>();
         await Parallel.ForEachAsync(procItems, _lineParalellOptions,
             async (item, t) =>
@@ -184,9 +184,8 @@ public class SubtitleTranslatorService
             speed = Math.Round(task.Speed.Value,3);
         }
 
-        var desDisplau = isTitle
-            ? $"[bold red]{description.PadRight(15)}[/]"
-            : $"[bold green]{description.PadRight(15)}[/]";
+        var rowStyle = new Style().Decoration(Decoration.Bold).Foreground(isTitle ? Color.Red  :isInitial ? Color.Orange1 : Color.Green).ToMarkup();
+        var desDisplau = $"[{rowStyle}]{description.PadRight(15)}[/]";
         
         var taskCount = $"{count}/{max}".PadRight(12);
 
