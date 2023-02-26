@@ -9,8 +9,7 @@ public class TranslateConfig
     public string SourceLanguage { get; set; } = "en";
 
     public string[] Languages { get; set; }
-
-    public string[] LibreTranslateUrls { get; set; }
+    
     
     public string LibreTranslateUrl { get; set; } = "http://localhost:5000";
 
