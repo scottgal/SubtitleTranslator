@@ -2,14 +2,24 @@
 
 internal class Program
 {
+    private static JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions()
+    {
+     
+        TypeInfoResolver = TranslatorJsonContext.Default,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip
+ 
+    };
     private static async Task Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8; 
         await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
         
-        var translateConfig = JsonSerializer.Deserialize(
+        var translateConfig = JsonSerializer.Deserialize<TranslateConfig>(
             await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(), "translate.json")),
-            TranslatorJsonContext.Default.TranslateConfig);
+           _jsonSerializerOptions);
+
+        translateConfig = SetupConfig(translateConfig);
         var whisperHttpClient = new HttpClient()
             { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromMinutes(30) };
 
@@ -43,85 +53,44 @@ internal class Program
         Debug.WriteLine("FINISHED");
         Console.ReadLine();
     }
-}
-
-/*
- * using Spectre.Console;
-using System;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-
-var client = new HttpClient();
-
-// Progress
-await AnsiConsole.Progress()
-    .Columns(new ProgressColumn[]
+    
+     static TranslateConfig SetupConfig(TranslateConfig translateConfig)
     {
-        new TaskDescriptionColumn(),
-        new ProgressBarColumn(),
-        new PercentageColumn(),
-        new RemainingTimeColumn(),
-        new SpinnerColumn(),
-    })
-    .StartAsync(async ctx =>
-    {
-        await Task.WhenAll(items.Select(async item =>
+        var sourceFile = translateConfig.SourceVideoFilePath;
+        var subtitleFile = translateConfig.SubtitleFilePath;
+        var destinationPath = translateConfig.DestinationPath;
+        var mp3Path = translateConfig.Mp3Path;
+        if (!File.Exists(sourceFile))
         {
-            var task = ctx.AddTask(item.name, new ProgressTaskSettings
-            {
-                AutoStart = false
-            });
-
-            await Download(client, task, item.url);
-        }));
-    });
-
-// This methods downloads a file and updates progress
-async Task Download(HttpClient client, ProgressTask task, string url)
-{
-    try
-    {
-        using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
-        {
-            response.EnsureSuccessStatusCode();
-
-            // Set the max value of the progress task to the number of bytes
-            task.MaxValue(response.Content.Headers.ContentLength ?? 0);
-            // Start the progress task
-            task.StartTask();
-
-            var filename = url.Substring(url.LastIndexOf('/') + 1);
-            AnsiConsole.MarkupLine($"Starting download of [u]{filename}[/] ({task.MaxValue} bytes)");
-
-            using (var contentStream = await response.Content.ReadAsStreamAsync())
-            using (var fileStream = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
-            {
-                var buffer = new byte[8192];
-                while (true)
-                {
-                    var read = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-                    if (read == 0)
-                    {
-                        AnsiConsole.MarkupLine($"Download of [u]{filename}[/] [green]completed![/]");
-                        break;
-                    }
-
-                    // Increment the number of read bytes for the progress task
-                    task.Increment(read);
-
-                    // Write the read bytes to the output stream
-                    await fileStream.WriteAsync(buffer, 0, read);
-                }
-            }
+            AnsiConsole.MarkupLine("[red bold]Source file not found[/]", sourceFile);
+            Environment.Exit(-1);
         }
-    }
-    catch (Exception ex)
-    {
-        // An error occured
-        AnsiConsole.MarkupLine($"[red]Error:[/] {ex}");
+        
+        if (!sourceFile.IsFullPath())
+        {
+            sourceFile = Path.Combine(Directory.GetCurrentDirectory(), sourceFile);
+            AnsiConsole.MarkupLine("[orange1 bold]Had to transform the source video path as it wasn't an absolute path.[/]", sourceFile);
+        }
+
+        translateConfig.DestinationPath =  destinationPath;
+        if (Path.HasExtension(translateConfig.DestinationPath))
+        {
+            AnsiConsole.MarkupLine("[red bold]Destination path is not a directory[/]", destinationPath);
+            Environment.Exit(-1);
+        }
+        translateConfig.Mp3Path = ReplacePath(mp3Path);
+        translateConfig.SubtitleFilePath = ReplacePath(subtitleFile);
+        
+        
+       
+        string ReplacePath(string path)
+        {
+            path =  path.Replace("{*}",  Path.Combine(destinationPath, Path.GetFileNameWithoutExtension(sourceFile)));
+            return path;
+        }
+      
+        
+
+        return translateConfig;
     }
 }
-
- */
