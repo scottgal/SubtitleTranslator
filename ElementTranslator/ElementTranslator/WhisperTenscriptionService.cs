@@ -50,7 +50,7 @@ public class WhisperTenscriptionService
                         request.Content = content;
 
                       var response=  await _whisperHttpClient.SendAsync(request);
-                      string output =Path.Combine( outputFilePath, Path.ChangeExtension(mp3FilePath, "srt"));
+                      string output = outputFilePath;
                       await File.WriteAllBytesAsync(output, await response.Content.ReadAsByteArrayAsync());
                       var elapsed = sw.ElapsedMilliseconds - startTimestamp;
                      AnsiConsole.MarkupLine($"[green]Cpmpleted Subtitle Transcription for file in {TimeSpan.FromMilliseconds(elapsed).TotalMinutes} minutes.[/] {mp3FilePath}"); 
@@ -64,11 +64,11 @@ public class WhisperTenscriptionService
             return (true, outputFilePath);
 
         }
-    public  async Task<(bool success, string filePath)> ExtractAudioFromVideoFile(string videoFilePath, string outputFilePath)
+    public  async Task<(bool success, string filePath)> ExtractAudioFromVideoFile(string videoFilePath, string mp3FilePath)
     {
         var startTimestamp = sw.ElapsedMilliseconds;
-        string     output =Path.Combine( outputFilePath, Path.ChangeExtension(videoFilePath, "mp3"));
-        if(File.Exists(output)) return (true, output);
+     
+        if(File.Exists(mp3FilePath)) return (true, mp3FilePath);
         
         await AnsiConsole.Status()
                 .AutoRefresh(true)
@@ -76,7 +76,7 @@ public class WhisperTenscriptionService
                 .StartAsync("[yellow]Beginning mp3 extraction for file[/]" + Path.GetFileName(videoFilePath),async ctx =>
                 {
                
-                    var conversion =await FFmpeg.Conversions.FromSnippet.ExtractAudio( videoFilePath, output);
+                    var conversion =await FFmpeg.Conversions.FromSnippet.ExtractAudio( videoFilePath, mp3FilePath);
                     conversion.SetOverwriteOutput(true);
                     conversion.UseMultiThread(Environment.ProcessorCount);
 
@@ -93,7 +93,7 @@ public class WhisperTenscriptionService
         AnsiConsole.MarkupLine($"[green]Cpmpleted MP3 extraction for file.[/] {videoFilePath} It took" +
                                $" {TimeSpan.FromMilliseconds(sw.ElapsedMilliseconds - startTimestamp).TotalSeconds} seconds"); 
      
-            return (true, output);
+            return (true, mp3FilePath);
 
         }
     

@@ -1,9 +1,10 @@
 {
   "SourceVideoFilePath": "F:\\GMV\\Sunny.mkv",
-  //NOTE: {*} is a wildcard that will be replaced with the SourceVideoFilePath. 
+  //NOTE: {*} is a wildcard that will be replaced with the SourceVideoFilePath without the file extension. 
   "SubtitleFilePath": "{*}.srt",
   "Mp3Path" : "{*}.mp3",
-"DestinationPath": "\\translated\\",
+  //NOTE: This path is relative to the SourceVideoFilePath or if it is an AbsolutePath then that is used.
+"DestinationPath": "translated",
 "Mode" : "TranscribeAndTranslate",
 "SourceLanguage": "en",
 "Languages": [

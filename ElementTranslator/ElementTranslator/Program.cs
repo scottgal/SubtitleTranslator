@@ -1,4 +1,5 @@
-﻿using Xabe.FFmpeg.Downloader;
+﻿using System.Text.RegularExpressions;
+using Xabe.FFmpeg.Downloader;
 
 internal class Program
 {
@@ -20,18 +21,39 @@ internal class Program
            _jsonSerializerOptions);
 
         translateConfig = SetupConfig(translateConfig);
-        var whisperHttpClient = new HttpClient()
-            { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromMinutes(30) };
 
-        var whisperAIService = new WhisperTenscriptionService(whisperHttpClient, translateConfig);
-        var mp3Result = await whisperAIService.ExtractAudioFromVideoFile(translateConfig.SourceVideoFilePath, translateConfig.DestinationPath);
-        await whisperAIService.TranscribeVideoFile(mp3Result.filePath, translateConfig.DestinationPath);
-        return;
+        if (translateConfig.Mode.HasFlag(Mode.Transcribe) && !File.Exists(translateConfig.SubtitleFilePath))
+        {
+        
+            var whisperHttpClient = new HttpClient()
+                { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromMinutes(30) };
+
+    
+            var whisperAIService = new WhisperTenscriptionService(whisperHttpClient, translateConfig);
+            var mp3Result = await whisperAIService.ExtractAudioFromVideoFile(translateConfig.SourceVideoFilePath,
+                translateConfig.Mp3Path);
+            if (!mp3Result.success)
+            {
+                AnsiConsole.MarkupLine("[red]Failed to extract audio from video file[/]");
+                Environment.Exit(-1);
+            }
+                await whisperAIService.TranscribeVideoFile(mp3Result.filePath, translateConfig.SubtitleFilePath);
+        }
+
         AnsiConsole.MarkupLine("[bold]Current directory[/]: [green]{0}[/]", Directory.GetCurrentDirectory());
-   
 
-        // AnsiConsole.MarkupLine("[bold]Config File directory[/]: [green]{0}[/]", File.Exists("translate.json"));
 
+        if (!translateConfig.Mode.HasFlag(Mode.Translate))
+        {
+            AnsiConsole.MarkupLine("[bold]Translate mode not enabled[/]");
+            Environment.Exit(0);
+        }
+
+        if (!File.Exists(translateConfig.SubtitleFilePath))
+        {
+            AnsiConsole.MarkupLine("[red]Subtitle file not found[/]");
+            Environment.Exit(-1);
+        }
         var httpClient = new HttpClient(new HttpRetryMessageHandler(new HttpClientHandler()))
             { BaseAddress = new Uri(translateConfig.LibreTranslateUrl), Timeout = TimeSpan.FromSeconds(30) };
       
@@ -71,13 +93,19 @@ internal class Program
             sourceFile = Path.Combine(Directory.GetCurrentDirectory(), sourceFile);
             AnsiConsole.MarkupLine("[orange1 bold]Had to transform the source video path as it wasn't an absolute path.[/]", sourceFile);
         }
-
-        translateConfig.DestinationPath =  destinationPath;
-        if (Path.HasExtension(translateConfig.DestinationPath))
+        if (Path.HasExtension(destinationPath))
         {
             AnsiConsole.MarkupLine("[red bold]Destination path is not a directory[/]", destinationPath);
             Environment.Exit(-1);
         }
+
+        if (!destinationPath.IsFullPath())
+        {
+            destinationPath = Path.Combine(Path.GetDirectoryName(sourceFile), Regex.Unescape(destinationPath));
+        }
+
+        translateConfig.DestinationPath =  destinationPath;
+   
         translateConfig.Mp3Path = ReplacePath(mp3Path);
         translateConfig.SubtitleFilePath = ReplacePath(subtitleFile);
         
