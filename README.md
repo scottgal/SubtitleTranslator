@@ -1,4 +1,12 @@
-# SubtitleTranslator
+# Video Transcriber and Subtitle Translator
+
+This is purely a project I'm using to play with; no warranties are implied but you're free to do what you like with it.
+
+This branch is an extension to thre original Subtitle Translator to add Media file (any supported by FFMPEG for audio extraction) -> MP3 file-> Subtitle file -> Translated Subtitle files
+
+It does this using WhisperAI and LibreTranslate Docker containers. 
+To run Whisper AI -
+`docker run -d -p 9000:9000 -e ASR_MODEL=base onerahmet/openai-whisper-asr-webservice:x1.0.41
 
 Little commandline Subtitle translator. Uses LibreTranslate as a front end. 
 ![image](https://user-images.githubusercontent.com/503770/221427796-042cd914-0467-4d14-8c41-73e262218524.png)
