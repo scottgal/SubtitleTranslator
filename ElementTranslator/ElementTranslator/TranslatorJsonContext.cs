@@ -2,7 +2,7 @@
 
 namespace ElementTranslator;
 
-[JsonSourceGenerationOptions( GenerationMode = JsonSourceGenerationMode.Default, WriteIndented = true)]
+[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default, WriteIndented = true)]
 [JsonSerializable(typeof(List<Languages>))]
 [JsonSerializable(typeof(LibreTranslateService.TranslateResponse))]
 [JsonSerializable(typeof(Languages))]

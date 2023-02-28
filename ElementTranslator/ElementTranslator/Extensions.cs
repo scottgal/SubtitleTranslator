@@ -2,12 +2,14 @@
 
 public static class Extensions
 {
-    public static bool IsFullPath(this string path) {
-        return !String.IsNullOrWhiteSpace(path)
-               && path.IndexOfAny(System.IO.Path.GetInvalidPathChars().ToArray()) == -1
+    public static bool IsFullPath(this string path)
+    {
+        return !string.IsNullOrWhiteSpace(path)
+               && path.IndexOfAny(Path.GetInvalidPathChars().ToArray()) == -1
                && Path.IsPathRooted(path)
                && !Path.GetPathRoot(path)!.Equals(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal);
     }
+
     public static T ToObject<T>(this JsonElement element)
     {
         var json = element.GetRawText();
