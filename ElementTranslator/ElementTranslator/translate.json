@@ -1,11 +1,11 @@
 {
-  "SourceVideoFilePath": "E:\\testdata\\batman.mp4",
+  "SourceVideoFilePath": "E:\\testdata\\chinese.mp4",
   //NOTE: {*} is a wildcard that will be replaced with the SourceVideoFilePath without the file extension. 
   "SubtitleFilePath": "{*}.srt",
   "Mp3Path" : "{*}.mp3",
   //NOTE: This path is relative to the SourceVideoFilePath or if it is an AbsolutePath then that is used.
 "DestinationPath": "translated",
-"Mode" : "TranscribeAndTranslate",
+"Mode" : "ExtractDetectTranslateTranscribe",
 "SourceLanguage": "en",
 "Languages": [
 "ar",

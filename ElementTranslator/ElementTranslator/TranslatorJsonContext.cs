@@ -7,6 +7,7 @@ namespace ElementTranslator;
 [JsonSerializable(typeof(LibreTranslateService.TranslateResponse))]
 [JsonSerializable(typeof(Languages))]
 [JsonSerializable(typeof(TranslateConfig))]
+[JsonSerializable(typeof(WhisperDetectLanguage))]
 internal partial class TranslatorJsonContext : JsonSerializerContext
 {
 }

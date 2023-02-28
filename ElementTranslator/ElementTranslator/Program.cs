@@ -27,9 +27,12 @@ internal class Program
         translateConfig = SetupConfig(translateConfig);
         var whisperAIService = new WhisperTenscriptionService(translateConfig);
 
+        var whisperHttpClient = new HttpClient()
+            { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromMinutes(120) };
 
+      
 
-        if (translateConfig.Mode.HasFlag(Mode.Extract))
+            if (translateConfig.Mode.HasFlag(Mode.Extract))
         {
             var mp3Result = await whisperAIService.ExtractAudioFromVideoFile(translateConfig.SourceVideoFilePath,
                 translateConfig.Mp3Path);
@@ -47,13 +50,24 @@ internal class Program
                 Environment.Exit(-1);
             }
         }
-
+            if (translateConfig.Mode.HasFlag(Mode.DetectLanguage))
+            {
+                var result = await whisperAIService.DetectLanguage(whisperHttpClient, translateConfig.Mp3Path);
+                if (result?.DetectedLanguage is null)
+                {
+                    AnsiConsole.MarkupLine($"[red]Failed to detect language for file.[/] {translateConfig.Mp3Path}");
+                    Environment.Exit(-1);
+                }
+                AnsiConsole.MarkupLine($"[green]Detected  language[/] [white bold] {result.DetectedLanguage}[/][green] for file.[/] {translateConfig.Mp3Path}");
+                translateConfig.SourceLanguage= result.LangaugeCode;
+            }
+            translateConfig.SubtitleFilePath = Path.ChangeExtension(translateConfig.SourceVideoFilePath, $".{translateConfig.SourceLanguage}.srt");
+            
         if (translateConfig.Mode.HasFlag(Mode.Transcribe) && !File.Exists(translateConfig.SubtitleFilePath))
         {
-            var whisperHttpClient = new HttpClient()
-                { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromMinutes(120) };
+         
 
-           var result = await whisperAIService.TranscribeVideoFile(whisperHttpClient, translateConfig.Mp3Path, translateConfig.SubtitleFilePath);
+           var result = await whisperAIService.TranscribeVideoFile(whisperHttpClient, translateConfig);
            if (!result)
            {
                AnsiConsole.MarkupLine($"[red]Failed to transcribe file.[/] {translateConfig.Mp3Path}");

@@ -14,27 +14,73 @@ public class WhisperTenscriptionService
         sw.Start();
     }
 
-    private Stopwatch sw = new Stopwatch();
+    private Stopwatch sw = new();
+
+
+    public async Task<WhisperDetectLanguage> DetectLanguage(HttpClient whisperHttpClient, string mp3FilePath)
+    {
+        var startTimestamp = sw.ElapsedMilliseconds;
+        var outStr = new WhisperDetectLanguage();
+        await AnsiConsole.Status()
+            .AutoRefresh(true)
+            .Spinner(Spinner.Known.Default)
+            .StartAsync("[yellow]Beginning subtitle for file[/]" + Path.GetFileName(mp3FilePath), async ctx =>
+            {
+                ctx.Status($"Beginning Subtitle Transcription for file, this will take a few minutes. {mp3FilePath}");
+                ctx.Refresh();
+                  
+                await using var stream = System.IO.File.OpenRead(mp3FilePath);
+  
+                using var request = new HttpRequestMessage(HttpMethod.Post,  "detect-language");
+                using var content = new MultipartFormDataContent
+                {
+                      
+                    { new StreamContent(stream), "audio_file", Path.GetFileName(mp3FilePath) }
+                };
+                request.Content = content;
+                try
+                {
+                     var resp=  await whisperHttpClient.SendAsync(request);
+
+                     if (!resp.IsSuccessStatusCode)
+                     {
+                         AnsiConsole.MarkupLine($"[red]Error[/] [white bold] {resp.StatusCode}[/] [red] for file.[/] {mp3FilePath}");
+                         return;
+                     }
+                     outStr =JsonSerializer.Deserialize(await resp.Content.ReadAsStringAsync(), TranslatorJsonContext.Default.WhisperDetectLanguage);
+                     var elapsed = sw.ElapsedMilliseconds - startTimestamp;
+                    AnsiConsole.MarkupLine($"[green]Detected  language[/] [white bold] {outStr}[/][green] for file in {TimeSpan.FromMilliseconds(elapsed).TotalMinutes} minutes.[/] {mp3FilePath}");
+                }
+                catch (Exception)
+                {
+          
+                    //TODO: LOGGING.
+             
+                }
+
+                
+            });
+        return outStr;
+    }
     
-    
-    public async Task<bool> TranscribeVideoFile(HttpClient whisperHttpClient, string mp3FilePath, string outputFilePath)
+    public async Task<bool> TranscribeVideoFile(HttpClient whisperHttpClient, TranslateConfig config)
     {
         var startTimestamp = sw.ElapsedMilliseconds;
         string output = "";
         await AnsiConsole.Status()
                 .AutoRefresh(true)
                 .Spinner(Spinner.Known.Default)
-                .StartAsync("[yellow]Beginning subtitle for file[/]" + Path.GetFileName(mp3FilePath),async ctx =>
+                .StartAsync("[yellow]Beginning subtitle for file[/]" + Path.GetFileName(config.Mp3Path),async ctx =>
                 {
                   
-                        ctx.Status($"Beginning Subtitle Transcription for file, this will take a few minutes. {mp3FilePath}");
+                        ctx.Status($"Beginning Subtitle Transcription for file, this will take a few minutes. {config.Mp3Path}");
                         ctx.Refresh();
                   
-                        await using var stream = System.IO.File.OpenRead(mp3FilePath);
+                        await using var stream = File.OpenRead(config.Mp3Path);
                         var queryParams = new Dictionary<string, string>
                         {
                             { "task", "transcribe" },
-                            {"language", "en"  },
+                            {"language", config.SourceLanguage  },
                             { "output", "srt" },
                         };
                         var queryString = QueryHelpers.AddQueryString("asr", queryParams);
@@ -43,7 +89,7 @@ public class WhisperTenscriptionService
                         using var content = new MultipartFormDataContent
                         {
                       
-                            { new StreamContent(stream), "audio_file", Path.GetFileName(mp3FilePath) }
+                            { new StreamContent(stream), "audio_file", Path.GetFileName(config.Mp3Path) }
                         };
 
                         request.Content = content;
@@ -51,10 +97,10 @@ public class WhisperTenscriptionService
                         try
                         {
                             var response=  await whisperHttpClient.SendAsync(request);
-                            string output = outputFilePath;
+                            string output = config.DestinationPath;
                             await File.WriteAllBytesAsync(output, await response.Content.ReadAsByteArrayAsync());
                             var elapsed = sw.ElapsedMilliseconds - startTimestamp;
-                            AnsiConsole.MarkupLine($"[green]Cpmpleted Subtitle Transcription for file in {TimeSpan.FromMilliseconds(elapsed).TotalMinutes} minutes.[/] {mp3FilePath}"); 
+                            AnsiConsole.MarkupLine($"[green]Cpmpleted Subtitle Transcription for file in {TimeSpan.FromMilliseconds(elapsed).TotalMinutes} minutes.[/] {config.Mp3Path}"); 
 
                         }
                         catch (Exception)
