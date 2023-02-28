@@ -2,8 +2,8 @@
 
 [Flags]
 public enum Mode
-{
-    Translate = 0,
-    Transcribe= 1,
-    TranscribeAndTranslate = Translate | Transcribe
+{   Extract = 1,
+    Translate = 2,
+    Transcribe= 4,
+    TranscribeAndTranslate = Extract | Translate | Transcribe
 }

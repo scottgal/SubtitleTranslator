@@ -7,18 +7,17 @@ public class WhisperTenscriptionService
 {
     private TranslateConfig _config;
     private HttpClient _whisperHttpClient;
-    public WhisperTenscriptionService(HttpClient whisperHttpClient, TranslateConfig config)
+    public WhisperTenscriptionService(TranslateConfig config)
     {
         
         _config = config;
-        _whisperHttpClient = whisperHttpClient;
         sw.Start();
     }
 
     private Stopwatch sw = new Stopwatch();
     
     
-    public async Task<(bool success, string filePath)> TranscribeVideoFile(string mp3FilePath, string outputFilePath)
+    public async Task<bool> TranscribeVideoFile(HttpClient whisperHttpClient, string mp3FilePath, string outputFilePath)
     {
         var startTimestamp = sw.ElapsedMilliseconds;
         string output = "";
@@ -49,22 +48,33 @@ public class WhisperTenscriptionService
 
                         request.Content = content;
 
-                      var response=  await _whisperHttpClient.SendAsync(request);
-                      string output = outputFilePath;
-                      await File.WriteAllBytesAsync(output, await response.Content.ReadAsByteArrayAsync());
-                      var elapsed = sw.ElapsedMilliseconds - startTimestamp;
-                     AnsiConsole.MarkupLine($"[green]Cpmpleted Subtitle Transcription for file in {TimeSpan.FromMilliseconds(elapsed).TotalMinutes} minutes.[/] {mp3FilePath}"); 
-                     return (true, output);
+                        try
+                        {
+                            var response=  await whisperHttpClient.SendAsync(request);
+                            string output = outputFilePath;
+                            await File.WriteAllBytesAsync(output, await response.Content.ReadAsByteArrayAsync());
+                            var elapsed = sw.ElapsedMilliseconds - startTimestamp;
+                            AnsiConsole.MarkupLine($"[green]Cpmpleted Subtitle Transcription for file in {TimeSpan.FromMilliseconds(elapsed).TotalMinutes} minutes.[/] {mp3FilePath}"); 
+
+                        }
+                        catch (Exception)
+                        {
+          
+   //TODO: LOGGING.
+                            return false;
+                        }
+                     
+                     return true;
 
                 });
 
-     
-        
-     
-            return (true, outputFilePath);
 
-        }
-    public  async Task<(bool success, string filePath)> ExtractAudioFromVideoFile(string videoFilePath, string mp3FilePath)
+
+        //If we get here smell a rat.
+        return false;
+
+    }
+    public  async Task<(bool success, string filePath)> ExtractAudioFromVideoFile( string videoFilePath, string mp3FilePath)
     {
         var startTimestamp = sw.ElapsedMilliseconds;
      

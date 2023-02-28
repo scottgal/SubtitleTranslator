@@ -129,15 +129,7 @@ public class SubtitleTranslatorService
                                 translated =
                                     await _libreTranslateService.TranslateAsync( httpClient ,
                                         plainLine, _config.SourceLanguage, languageCode.code, languageDictionary);
-                                if (translated.success)
-                                {
-                                    task.Increment(1);
-                                    _totalTask.Increment(1);
-                                    _totalTask.Description =
-                                        TaskDescription(_totalTask, isTitle: true, description: "Total");
-                                    task.Description = TaskDescription(task, description: languageCode.name);
-                                    break;
-                                }
+                           
 
                               
                             }
@@ -157,12 +149,14 @@ public class SubtitleTranslatorService
                     Debug.WriteLine(item.StartTime + " :: " + languageCode.name + " :: " + plainLine + " :: " +
                                     translated.response);
                 }
+                task.Increment(newItem.PlaintextLines.Count);
+                _totalTask.Increment(newItem.PlaintextLines.Count);
+                _totalTask.Description =
+                    TaskDescription(_totalTask, isTitle: true, description: "Total");
+                task.Description = TaskDescription(task, description: languageCode.name);
 
-              
-                 
-                 
-                
-                if (task.Value % 100 == 0)
+            
+                if(task.Value % 100 == 0)
                 {
                   
                     await WriteTempFile(languageCode, outItems);
@@ -171,6 +165,7 @@ public class SubtitleTranslatorService
             });
         await WriteTempFile(languageCode, outItems);
         File.Move(GetOutputFileName(languageCode.code, true), GetOutputFileName(languageCode.code, false));
+        AnsiConsole.MarkupLine("[bold]Finished[/]: [green]{0}[/]", languageCode.name);
         task.StopTask();
     }
 

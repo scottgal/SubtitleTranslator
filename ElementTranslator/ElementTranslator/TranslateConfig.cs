@@ -16,7 +16,7 @@ public class TranslateConfig
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public Mode Mode { get; set; } = Mode.Translate;
 
-    public string SourceLanguage { get; set; } = "en";
+    public string SourceLanguage { get; set; } = "";
 
     public string[] Languages { get; set; } = new[] { "en" };
 
