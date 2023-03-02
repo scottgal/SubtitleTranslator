@@ -32,7 +32,7 @@ internal class Program
             { BaseAddress = new Uri(translateConfig.WhisperAIUrl), Timeout = TimeSpan.FromMinutes(120) };
 
 
-        if (translateConfig.Mode.HasFlagFast(Mode.Extract))
+        if (translateConfig.Mode.HasFlagFast(Mode.Extract) && !File.Exists(translateConfig.Mp3Path))
         {
             var mp3Result = await whisperAIService.ExtractAudioFromVideoFile(translateConfig.SourceVideoFilePath,
                 translateConfig.Mp3Path);
@@ -51,41 +51,49 @@ internal class Program
             }
         }
 
-        if (translateConfig.Mode.HasFlagFast(Mode.DetectLanguage))
+        if (!File.Exists(translateConfig.SubtitleFilePath))
         {
-            var result = await whisperAIService.DetectLanguage(whisperHttpClient, translateConfig.Mp3Path);
-            if (result?.DetectedLanguage is null)
+
+
+            if (translateConfig.Mode.HasFlagFast(Mode.DetectLanguage))
             {
-                AnsiConsole.MarkupLine($"[red]Failed to detect language for file.[/] {translateConfig.Mp3Path}");
-                Environment.Exit(-1);
+                var result = await whisperAIService.DetectLanguage(whisperHttpClient, translateConfig.Mp3Path);
+                if (result?.DetectedLanguage is null)
+                {
+                    AnsiConsole.MarkupLine($"[red]Failed to detect language for file.[/] {translateConfig.Mp3Path}");
+                    Environment.Exit(-1);
+                }
+
+                AnsiConsole.MarkupLine(
+                    $"[green]Detected  language[/] [white bold] {result.DetectedLanguage}[/][green] for file.[/] {translateConfig.Mp3Path}");
+                translateConfig.SourceLanguage = result.LangaugeCode;
             }
 
-            AnsiConsole.MarkupLine(
-                $"[green]Detected  language[/] [white bold] {result.DetectedLanguage}[/][green] for file.[/] {translateConfig.Mp3Path}");
-            translateConfig.SourceLanguage = result.LangaugeCode;
-        }
+            translateConfig.SubtitleFilePath = Path.ChangeExtension(translateConfig.SourceVideoFilePath,
+                $".{translateConfig.SourceLanguage}.srt");
 
-        translateConfig.SubtitleFilePath = Path.ChangeExtension(translateConfig.SourceVideoFilePath,
-            $".{translateConfig.SourceLanguage}.srt");
-
-        if (translateConfig.Mode.HasFlagFast(Mode.Transcribe) && !File.Exists(translateConfig.SubtitleFilePath))
-        {
-            var result = await whisperAIService.TranscribeVideoFile(whisperHttpClient, translateConfig);
-            if (!result)
+            if (translateConfig.Mode.HasFlagFast(Mode.Transcribe))
             {
-                AnsiConsole.MarkupLine($"[red]Failed to transcribe file.[/] {translateConfig.Mp3Path}");
-                Environment.Exit(-1);
+                var result = await whisperAIService.TranscribeVideoFile(whisperHttpClient, translateConfig);
+                if (!result)
+                {
+                    AnsiConsole.MarkupLine($"[red]Failed to transcribe file.[/] {translateConfig.Mp3Path}");
+                    Environment.Exit(-1);
+                }
+            }
+            else
+            {
+                if (!File.Exists(translateConfig.SubtitleFilePath))
+                {
+                    AnsiConsole.MarkupLine("[red]Subtitle file not found[/]");
+                    Environment.Exit(-1);
+                }
             }
         }
         else
         {
-            if (!File.Exists(translateConfig.SubtitleFilePath))
-            {
-                AnsiConsole.MarkupLine("[red]Subtitle file not found[/]");
-                Environment.Exit(-1);
-            }
+            AnsiConsole.MarkupLine("[bold green]Existing subtitle file detected so skipping Detect Language ans Transcribe[/] ");
         }
-
 
         if (!translateConfig.Mode.HasFlagFast(Mode.Translate))
         {
