@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+    branches: [ "VideoTranscription" ]
+  pull_request:
+    branches: [ "VideoTranscription" ]
 
 env:
   PROJECT_PATH: ElementTranslator/ElemenTranslator/ElementTranslator.csproj
