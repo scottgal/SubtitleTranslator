@@ -15,6 +15,8 @@ jobs:
   deploy:
     runs-on: windows-latest
     steps:
+      - name: set env
+        run: echo "NOW=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
       - name: Initialize Actions
         uses: actions/checkout@v2
 
@@ -39,8 +41,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          tag_name: ${{ env.NOW }}
+          release_name: ${{ env.NOW }}
       
       - name: Create Release    
         uses: csexton/release-asset-action@v2
