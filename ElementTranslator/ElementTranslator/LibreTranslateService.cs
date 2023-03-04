@@ -47,11 +47,11 @@ public class LibreTranslateService
             AnsiConsole.WriteException(e);
             return (success: false, "");
         }
-    
 
-    var ret = JsonSerializer.Deserialize(stringResp, TranslatorJsonContext.Default.TranslateResponse);
+
+        var ret = JsonSerializer.Deserialize(stringResp, TranslatorJsonContext.Default.TranslateResponse);
         cache.TryAdd(test, ret.TranslatedText);
-         return (success: true, ret.TranslatedText);
+        return (success: true, ret.TranslatedText);
     }
 
     public async Task<List<Languages>?> GetSupportedLanguagesAsync(HttpClient httpClient)

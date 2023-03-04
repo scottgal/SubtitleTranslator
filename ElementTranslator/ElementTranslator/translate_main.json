@@ -32,6 +32,6 @@
     "uk",
     "zh"
   ],
-  "LibreTranslateUrl":   "http://localhost:5000",
+  "LibreTranslateUrl": "http://localhost:5000",
   "DestinationPath": "F:\\GMV\\translated\\"
 }
