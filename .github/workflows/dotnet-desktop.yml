@@ -20,7 +20,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: set env
-        run: echo "NOW=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+        run: echo "::set-env name=NOW::v$(date +'%Y%m%d.%H%M%S')"
       - name: Initialize Actions
         uses: actions/checkout@v2
 
