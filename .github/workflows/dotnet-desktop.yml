@@ -12,6 +12,7 @@ env:
   PROJECT_PATH: ElementTranslator/ElementTranslator/ElementTranslator.csproj
   ZIP_PATH: ElementTranslator/ElementTranslator/bin/Release/net7.0/win-x64/publish/ElementTranslator-Portable.zip
   EXE_PATH: ElementTranslator/ElementTranslator/bin/Release/net7.0/win-x64/publish/ElementTranslator.exe
+  CONFIG_PATH: ElementTranslator/ElementTranslator/bin/Release/net7.0/win-x64/publish/translate.json
   
 
 jobs:
@@ -48,6 +49,8 @@ jobs:
         uses: csexton/release-asset-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.ZIP_PATH }}
+          files: |
+            ${{ env.ZIP_PATH }}
+            ${{ env.CONFIG_PATH }}
           release-url: ${{ steps.create_release.outputs.upload_url }}
           
