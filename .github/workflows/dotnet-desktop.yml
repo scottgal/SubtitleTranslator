@@ -10,8 +10,8 @@ on:
 
 env:
   PROJECT_PATH: ElementTranslator/ElementTranslator/ElementTranslator.csproj
-  ZIP_PATH: ElementTranslator/ElementTranslator/bin/Release/net7.0-windows/win-x64/publish/ElementTranslator-Portable.zip
-  EXE_PATH: ElementTranslator/ElementTranslator/bin/Release/net7.0-windows/win-x64/publish/ElementTranslator.exe
+  ZIP_PATH: ElementTranslator/ElementTranslator/bin/Release/net7.0/win-x64/publish/ElementTranslator-Portable.zip
+  EXE_PATH: ElementTranslator/ElementTranslator/bin/Release/net7.0/win-x64/publish/ElementTranslator.exe
   
 
 jobs:
